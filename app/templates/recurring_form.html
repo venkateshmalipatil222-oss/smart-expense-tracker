@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}{% if rule %}Edit Recurring Schedule{% else %}New Recurring Schedule{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
+            {% if rule %}Edit Recurring Schedule{% else %}Create Recurring Schedule{% endif %}
+        </h1>
+        <a href="{{ url_for('recurring.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">
+            &larr; Back to schedules
+        </a>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm">
+        <form method="POST" class="space-y-5">
+            <!-- Type Toggle -->
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Schedule Type</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center justify-center p-3 border rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/50 has-[:checked]:text-blue-700 transition">
+                        <input type="radio" name="transaction_type" value="expense" class="sr-only" {% if not rule or rule.transaction_type == 'expense' %}checked{% endif %}>
+                        <span class="text-sm font-bold">Recurring Expense</span>
+                    </label>
+                    <label class="flex items-center justify-center p-3 border rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/50 has-[:checked]:text-emerald-700 transition">
+                        <input type="radio" name="transaction_type" value="income" class="sr-only" {% if rule and rule.transaction_type == 'income' %}checked{% endif %}>
+                        <span class="text-sm font-bold">Recurring Income</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="descInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Description *</label>
+                <input type="text" id="descInput" name="description" required value="{{ rule.description if rule else '' }}" placeholder="e.g. Netflix Subscription, Apartment Rent, Gym Membership" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Merchant / Payee -->
+            <div>
+                <label for="merchantInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Merchant / Payee</label>
+                <input type="text" id="merchantInput" name="merchant" value="{{ rule.merchant if rule and rule.merchant else '' }}" placeholder="e.g. Netflix Inc, ConEdison" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Amount and Category -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="amountInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Amount ($) *</label>
+                    <input type="number" step="0.01" min="0.01" id="amountInput" name="amount" required value="{{ rule.amount if rule else '' }}" placeholder="0.00" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label for="categorySelect" class="block text-xs font-bold uppercase text-slate-500 mb-1">Category *</label>
+                    <select id="categorySelect" name="category_id" required class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">Select Category</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if rule and rule.category_id == cat.id %}selected{% endif %}>
+                                {{ cat.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Recurrence Frequency and Interval -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="freqSelect" class="block text-xs font-bold uppercase text-slate-500 mb-1">Frequency *</label>
+                    <select id="freqSelect" name="frequency" required class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="daily" {% if rule and rule.frequency == 'daily' %}selected{% endif %}>Daily</option>
+                        <option value="weekly" {% if rule and rule.frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+                        <option value="monthly" {% if not rule or rule.frequency == 'monthly' %}selected{% endif %}>Monthly</option>
+                        <option value="yearly" {% if rule and rule.frequency == 'yearly' %}selected{% endif %}>Yearly</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="intervalInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Interval Multiplier</label>
+                    <input type="number" min="1" max="365" id="intervalInput" name="interval" value="{{ rule.interval if rule else 1 }}" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Start Date and Optional End Date -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="startDateInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Start / Next Due Date *</label>
+                    <input type="date" id="startDateInput" name="start_date" required value="{{ rule.start_date if rule else today }}" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label for="endDateInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">End Date (Optional)</label>
+                    <input type="date" id="endDateInput" name="end_date" value="{{ rule.end_date if rule and rule.end_date else '' }}" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            {% if rule %}
+            <div class="flex items-center space-x-2 pt-2">
+                <input type="checkbox" id="isActiveInput" name="is_active" class="w-4 h-4 text-blue-600 rounded" {% if rule.is_active %}checked{% endif %}>
+                <label for="isActiveInput" class="text-sm font-semibold text-slate-700">Schedule Active</label>
+            </div>
+            {% endif %}
+
+            <!-- Buttons -->
+            <div class="pt-4 flex items-center justify-end space-x-3">
+                <a href="{{ url_for('recurring.index') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-sm font-bold text-white shadow-sm transition">
+                    {% if rule %}Update Schedule{% else %}Save Schedule{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Smart Expense Tracker{% endblock %} | AI Financial Platform</title>
+    <!-- Tailwind CSS CDN with dark mode enabled -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Immediate Theme Resolver to avoid screen flash -->
+    <script>
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full flex flex-col md:flex-row text-slate-800 dark:text-slate-100 antialiased bg-slate-50/70 dark:bg-slate-950 transition-colors duration-200">
+
+    {% if current_user.is_authenticated %}
+    <!-- Mobile Header with Navigation (Authenticated Only) -->
+    <div class="md:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
+        <a href="{{ url_for('core.dashboard') }}" class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-base">
+                $
+            </div>
+            <span class="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight">SmartExpense</span>
+        </a>
+        <div class="flex items-center space-x-2">
+            <!-- User Status Mobile -->
+            <a href="{{ url_for('auth.logout') }}" title="Signed in as {{ current_user.username }} - Click to Sign Out" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <div class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black">
+                    {{ current_user.username[:1].upper() }}
+                </div>
+                <span class="hidden sm:inline">{{ current_user.username }}</span>
+                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            </a>
+
+            <!-- Theme Toggle Mobile -->
+            <button type="button" onclick="toggleTheme()" class="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Light/Dark Theme">
+                <svg class="w-5 h-5 theme-icon-sun hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg class="w-5 h-5 theme-icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            </button>
+            <button onclick="document.getElementById('sidebar').classList.toggle('hidden')" class="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Vertical Left Sidebar (Authenticated Desktop Only) -->
+    <aside id="sidebar" class="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 fixed md:sticky top-0 h-screen z-40 transition-colors duration-200">
+        <!-- Brand Header -->
+        <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <a href="{{ url_for('core.dashboard') }}" class="flex items-center space-x-2.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 font-bold text-xl">
+                    $
+                </div>
+                <div>
+                    <span class="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white block leading-tight">SmartExpense</span>
+                    <span class="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 tracking-wider">AI Platform</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Quick Action Button in Sidebar -->
+        <div class="p-4 border-b border-slate-100 dark:border-slate-800">
+            <a href="{{ url_for('core.add_transaction') }}" class="w-full flex items-center justify-center space-x-2 py-2.5 px-4 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>Add Expense</span>
+            </a>
+        </div>
+
+        <!-- Vertical Navigation Links with Icons -->
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('core.dashboard') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition {% if request.endpoint == 'core.dashboard' %}bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <svg class="w-5 h-5 {% if request.endpoint == 'core.dashboard' %}text-blue-600 dark:text-blue-400{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="{{ url_for('core.transactions') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition {% if request.endpoint and 'transactions' in request.endpoint %}bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <svg class="w-5 h-5 {% if request.endpoint and 'transactions' in request.endpoint %}text-blue-600 dark:text-blue-400{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                <span>Transactions</span>
+            </a>
+
+            <a href="{{ url_for('insights.index') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition {% if request.endpoint and 'insights' in request.endpoint %}bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <svg class="w-5 h-5 {% if request.endpoint and 'insights' in request.endpoint %}text-blue-600 dark:text-blue-400{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span>AI Insights</span>
+            </a>
+
+            <a href="{{ url_for('receipts.index') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition {% if request.endpoint and 'receipts' in request.endpoint %}bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <svg class="w-5 h-5 {% if request.endpoint and 'receipts' in request.endpoint %}text-blue-600 dark:text-blue-400{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                <span>Receipt Scanner</span>
+            </a>
+
+            <a href="{{ url_for('recurring.index') }}" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition {% if request.endpoint and 'recurring' in request.endpoint %}bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-5 h-5 {% if request.endpoint and 'recurring' in request.endpoint %}text-blue-600 dark:text-blue-400{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Recurring</span>
+                </div>
+                {% if pending_recurring_count > 0 %}
+                    <span class="px-2 py-0.5 text-xs rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-extrabold">{{ pending_recurring_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{{ url_for('goals.index') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition {% if request.endpoint and 'goals' in request.endpoint %}bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <svg class="w-5 h-5 {% if request.endpoint and 'goals' in request.endpoint %}text-blue-600 dark:text-blue-400{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Savings Goals</span>
+            </a>
+
+            <a href="{{ url_for('import_stmt.index') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition {% if request.endpoint and 'import' in request.endpoint %}bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <svg class="w-5 h-5 {% if request.endpoint and 'import' in request.endpoint %}text-blue-600 dark:text-blue-400{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <span>Bank Import</span>
+            </a>
+        </nav>
+
+        <!-- User Session Card in Sidebar -->
+        <div class="px-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0 shadow-sm">
+                        {{ current_user.username[:2].upper() }}
+                    </div>
+                    <div class="truncate">
+                        <span class="text-xs font-bold text-slate-900 dark:text-white block truncate">{{ current_user.username }}</span>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400 block truncate">{{ current_user.email }}</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" title="Sign Out" class="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition ml-1 flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer with Dark / Light Mode Switcher & Status -->
+        <div class="p-4 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
+            <!-- Dark / Light Action Button -->
+            <button type="button" onclick="toggleTheme()" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 shadow-sm transition">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-amber-500 theme-icon-sun hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg class="w-4 h-4 text-blue-500 theme-icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    <span class="theme-text">Dark Mode</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-semibold uppercase">Toggle</span>
+            </button>
+
+            <!-- Status Indicator -->
+            <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium px-1">
+                <span class="flex items-center space-x-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>AI Engine Active</span>
+                </span>
+                <span class="text-[10px] text-slate-400">v2.0</span>
+            </div>
+        </div>
+    </aside>
+    {% else %}
+    <!-- Unauthenticated Minimal Top Nav (Auth Screen Only) -->
+    <header class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-slate-950/40 backdrop-blur-md border-b border-white/10 transition">
+        <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 font-bold text-base">
+                $
+            </div>
+            <span class="font-extrabold text-base tracking-tight text-white">SmartExpense</span>
+            <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30 tracking-wider">AI Platform</span>
+        </div>
+        <div>
+            <!-- Dark / Light Action Button in Minimal Nav -->
+            <button type="button" onclick="toggleTheme()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/10 shadow-sm transition">
+                <svg class="w-4 h-4 text-amber-400 theme-icon-sun hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg class="w-4 h-4 text-blue-400 theme-icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                <span class="theme-text">Dark Mode</span>
+            </button>
+        </div>
+    </header>
+    {% endif %}
+
+    <!-- Main Content Area with Vertical Flow -->
+    <div class="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+        <!-- Top Flash Alert Bar -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="mb-4 p-4 rounded-xl flex items-start space-x-3 shadow-sm border
+                            {% if category == 'success' %}bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200
+                            {% elif category == 'warning' %}bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200
+                            {% elif category == 'danger' %}bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200
+                            {% else %}bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200{% endif %}">
+                            <div class="flex-1 font-medium text-sm">
+                                {{ message }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Dynamic Main Content -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Page Footer -->
+        <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 px-6 text-center text-xs text-slate-400 dark:text-slate-500 transition-colors">
+            Smart Expense Tracker &copy; 2026. Built with Python, Flask, Scikit-Learn, and OpenCV.
+        </footer>
+    </div>
+
+    <!-- Theme Logic Script -->
+    <script>
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+                applyThemeIcons(false);
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+                applyThemeIcons(true);
+            }
+        }
+
+        function applyThemeIcons(isDark) {
+            document.querySelectorAll('.theme-icon-sun').forEach(el => el.classList.toggle('hidden', !isDark));
+            document.querySelectorAll('.theme-icon-moon').forEach(el => el.classList.toggle('hidden', isDark));
+            document.querySelectorAll('.theme-text').forEach(el => el.textContent = isDark ? 'Light Mode' : 'Dark Mode');
+        }
+
+        // Initialize icons on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            applyThemeIcons(isDark);
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

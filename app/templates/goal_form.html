@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Create Savings Goal{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Create Savings Goal</h1>
+        <a href="{{ url_for('goals.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">
+            &larr; Back to Goals
+        </a>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm">
+        <form method="POST" class="space-y-5">
+            <div>
+                <label for="titleInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Goal Title *</label>
+                <input type="text" id="titleInput" name="title" required placeholder="e.g. Emergency Fund, New Laptop, Vacation in Japan" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-900">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="targetInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Target Amount ($) *</label>
+                    <input type="number" step="0.01" min="1.00" id="targetInput" name="target_amount" required placeholder="1000.00" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-900">
+                </div>
+                <div>
+                    <label for="currentInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Current Balance ($)</label>
+                    <input type="number" step="0.01" min="0.00" id="currentInput" name="current_amount" value="0.00" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="dateInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Target Deadline *</label>
+                    <input type="date" id="dateInput" name="target_date" required class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label for="categorySelect" class="block text-xs font-bold uppercase text-slate-500 mb-1">Linked Category (Optional)</label>
+                    <select id="categorySelect" name="category_id" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">General Savings</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label for="descInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Description / Motivation</label>
+                <textarea id="descInput" name="description" rows="3" placeholder="Why is this goal important? Notes, plans, or milestones..." class="w-full px-4 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+            </div>
+
+            <div class="pt-4 flex items-center justify-end space-x-3">
+                <a href="{{ url_for('goals.index') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-sm font-bold text-white shadow-sm transition">
+                    Create Goal &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

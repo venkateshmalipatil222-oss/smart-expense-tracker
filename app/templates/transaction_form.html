@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}{% if transaction %}Edit Transaction{% else %}New Transaction{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
+            {% if transaction %}Edit Transaction{% else %}Record New Transaction{% endif %}
+        </h1>
+        <a href="{{ url_for('core.transactions') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">
+            &larr; Back to list
+        </a>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm">
+        <form method="POST" id="txForm" class="space-y-5">
+            <!-- Type Toggle -->
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Transaction Type</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center justify-center p-3 border rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/50 has-[:checked]:text-blue-700 transition">
+                        <input type="radio" name="transaction_type" value="expense" class="sr-only" {% if not transaction or transaction.transaction_type == 'expense' %}checked{% endif %}>
+                        <span class="text-sm font-bold">Expense</span>
+                    </label>
+                    <label class="flex items-center justify-center p-3 border rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/50 has-[:checked]:text-emerald-700 transition">
+                        <input type="radio" name="transaction_type" value="income" class="sr-only" {% if transaction and transaction.transaction_type == 'income' %}checked{% endif %}>
+                        <span class="text-sm font-bold">Income</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Description (with live auto-categorization trigger) -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label for="descInput" class="block text-xs font-bold uppercase text-slate-500">Description *</label>
+                    <span id="aiCategoryBadge" class="hidden text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 transition">
+                        AI Suggested: <span id="suggestedCatName"></span>
+                    </span>
+                </div>
+                <input type="text" id="descInput" name="description" required value="{{ transaction.description if transaction else '' }}" placeholder="e.g. Starbucks, Uber ride, Electric bill, Salary" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Merchant / Payee (Optional) -->
+            <div>
+                <label for="merchantInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Merchant / Payee</label>
+                <input type="text" id="merchantInput" name="merchant" value="{{ transaction.merchant if transaction and transaction.merchant else '' }}" placeholder="e.g. Starbucks Store #102, Target Inc." class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Amount and Date in Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="amountInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Amount ($) *</label>
+                    <input type="number" step="0.01" min="0.01" id="amountInput" name="amount" required value="{{ transaction.amount if transaction else '' }}" placeholder="0.00" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label for="dateInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Date *</label>
+                    <input type="date" id="dateInput" name="date" required value="{{ transaction.date if transaction else today }}" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Category Dropdown with override message -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label for="categorySelect" class="block text-xs font-bold uppercase text-slate-500">Category *</label>
+                    <span class="text-[11px] text-slate-400">Select any category or accept AI suggestion</span>
+                </div>
+                <select id="categorySelect" name="category_id" required class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">Select a category</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if transaction and transaction.category_id == cat.id %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Live Anomaly Warning Banner (Dynamic) -->
+            <div id="anomalyAlert" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                <div class="flex items-center space-x-2 font-bold text-amber-800">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <span>Unusual Spending Detected</span>
+                </div>
+                <p id="anomalyReasonText" class="mt-1 text-slate-700"></p>
+                <div class="mt-1.5 text-[10px] text-slate-500 font-medium">You can still record this transaction; it will simply be tagged for your awareness.</div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label for="notesInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Notes</label>
+                <textarea id="notesInput" name="notes" rows="2" placeholder="Optional context or reference..." class="w-full px-4 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">{{ transaction.notes if transaction and transaction.notes else '' }}</textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div class="pt-2 flex items-center justify-end space-x-3">
+                <a href="{{ url_for('core.transactions') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-sm font-bold text-white shadow-sm transition">
+                    {% if transaction %}Update Transaction{% else %}Save Transaction{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const descInput = document.getElementById('descInput');
+    const amountInput = document.getElementById('amountInput');
+    const dateInput = document.getElementById('dateInput');
+    const categorySelect = document.getElementById('categorySelect');
+    const aiCategoryBadge = document.getElementById('aiCategoryBadge');
+    const suggestedCatName = document.getElementById('suggestedCatName');
+    const anomalyAlert = document.getElementById('anomalyAlert');
+    const anomalyReasonText = document.getElementById('anomalyReasonText');
+
+    let debounceTimer;
+
+    // Live Auto-Categorization as user types
+    descInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            const desc = descInput.value.trim();
+            const amt = parseFloat(amountInput.value) || 0;
+            if (desc.length >= 3) {
+                fetch(`{{ url_for('core.api_categorize') }}?description=${encodeURIComponent(desc)}&amount=${amt}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.category_name && data.confidence > 0.40) {
+                            // Update badge
+                            suggestedCatName.innerText = `${data.category_name} (${Math.round(data.confidence * 100)}%)`;
+                            aiCategoryBadge.classList.remove('hidden');
+
+                            // Auto-select if category not yet manually selected
+                            if (!categorySelect.value && data.category_id) {
+                                categorySelect.value = data.category_id;
+                                checkAnomaly();
+                            }
+                        }
+                    });
+            } else {
+                aiCategoryBadge.classList.add('hidden');
+            }
+        }, 300);
+    });
+
+    // Live Anomaly Check
+    function checkAnomaly() {
+        const amt = parseFloat(amountInput.value) || 0;
+        const catId = categorySelect.value;
+        const dVal = dateInput.value;
+
+        if (amt > 0 && catId) {
+            fetch(`{{ url_for('core.api_check_anomaly') }}?amount=${amt}&category_id=${catId}&date=${dVal}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.is_anomaly) {
+                        anomalyReasonText.innerText = data.reason;
+                        anomalyAlert.classList.remove('hidden');
+                    } else {
+                        anomalyAlert.classList.add('hidden');
+                    }
+                });
+        } else {
+            anomalyAlert.classList.add('hidden');
+        }
+    }
+
+    amountInput.addEventListener('input', checkAnomaly);
+    categorySelect.addEventListener('change', checkAnomaly);
+    dateInput.addEventListener('change', checkAnomaly);
+</script>
+{% endblock %}
+

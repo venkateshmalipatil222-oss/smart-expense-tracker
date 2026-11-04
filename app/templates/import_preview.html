@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Preview Statement Import{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl mx-auto">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Step 3: Preview Transactions</h1>
+            <p class="text-slate-500 text-sm mt-0.5">
+                Inspect parsed records from <span class="font-bold text-slate-800">{{ filename }}</span>. Review detected duplicates before saving to your ledger.
+            </p>
+        </div>
+        <a href="{{ url_for('import_stmt.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">
+            Cancel
+        </a>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+            <span class="text-xs uppercase text-slate-400 font-semibold block">Total Rows In File</span>
+            <span class="text-2xl font-extrabold text-slate-900 mt-1 block">{{ total_rows }}</span>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+            <span class="text-xs uppercase text-slate-400 font-semibold block">Ready to Import</span>
+            <span class="text-2xl font-extrabold text-emerald-600 mt-1 block">{{ total_rows - duplicate_count }}</span>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+            <span class="text-xs uppercase text-slate-400 font-semibold block">Potential Duplicates</span>
+            <span class="text-2xl font-extrabold {% if duplicate_count > 0 %}text-amber-600{% else %}text-slate-400{% endif %} mt-1 block">
+                {{ duplicate_count }}
+            </span>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('import_stmt.commit_import') }}" class="space-y-6">
+        <!-- Duplicate Handling Controls -->
+        <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-start space-x-3">
+                <input type="checkbox" id="skipDupsCheck" name="skip_duplicates" checked class="mt-1 w-4 h-4 text-blue-600 rounded">
+                <label for="skipDupsCheck" class="text-xs text-amber-900 cursor-pointer">
+                    <span class="font-bold block text-sm">Safely skip potential duplicate records (Recommended)</span>
+                    Prevents adding identical transactions that match existing ledger dates and amounts.
+                </label>
+            </div>
+            <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-sm font-bold text-white shadow-sm transition whitespace-nowrap">
+                Confirm & Import Transactions &rarr;
+            </button>
+        </div>
+
+        <!-- Preview Records Table -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-semibold tracking-wider">
+                            <th class="py-3 px-6">Row</th>
+                            <th class="py-3 px-6">Date</th>
+                            <th class="py-3 px-6">Description</th>
+                            <th class="py-3 px-6">Category</th>
+                            <th class="py-3 px-6 text-right">Amount</th>
+                            <th class="py-3 px-6 text-center">Duplicate Check</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for row in rows %}
+                        <tr class="hover:bg-slate-50/50 {% if row.is_duplicate %}bg-amber-50/30{% endif %}">
+                            <td class="py-3 px-6 text-xs text-slate-400 font-mono">#{{ loop.index }}</td>
+                            <td class="py-3 px-6 font-medium text-slate-700 whitespace-nowrap">{{ row.date }}</td>
+                            <td class="py-3 px-6 font-bold text-slate-900">{{ row.description }}</td>
+                            <td class="py-3 px-6 whitespace-nowrap">
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                                    {{ row.category }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-6 text-right font-extrabold text-slate-900 whitespace-nowrap">
+                                {{ row.amount | currency }}
+                            </td>
+                            <td class="py-3 px-6 text-center whitespace-nowrap">
+                                {% if row.is_duplicate %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800" title="{{ row.duplicate_reason }}">
+                                        Duplicate Detected
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
+                                        Unique Record
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-slate-400">No rows could be parsed. Check your column mappings.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

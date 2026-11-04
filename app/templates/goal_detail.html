@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}{{ goal.title }} - Goal Progress{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center space-x-3">
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{{ goal.title }}</h1>
+                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full {% if goal.status == 'completed' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                    {% if goal.status == 'completed' %}Completed!{% else %}In Progress{% endif %}
+                </span>
+            </div>
+            <p class="text-slate-500 text-sm mt-1">{{ goal.description or 'No notes provided.' }}</p>
+        </div>
+        <a href="{{ url_for('goals.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">
+            &larr; Back to Goals
+        </a>
+    </div>
+
+    <!-- Main Metrics Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <div class="text-xs font-semibold uppercase text-slate-400">Target Amount</div>
+            <div class="text-2xl font-extrabold text-slate-900 mt-1">{{ goal.target_amount | currency }}</div>
+            <div class="text-xs text-slate-500 mt-1">Deadline: {{ goal.target_date }}</div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <div class="text-xs font-semibold uppercase text-slate-400">Current Saved</div>
+            <div class="text-2xl font-extrabold text-emerald-600 mt-1">{{ goal.current_amount | currency }}</div>
+            <div class="text-xs text-slate-500 mt-1">{{ goal.progress_percentage }}% achieved</div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <div class="text-xs font-semibold uppercase text-slate-400">Remaining Balance</div>
+            <div class="text-2xl font-extrabold text-blue-600 mt-1">{{ goal.remaining_amount | currency }}</div>
+            <div class="text-xs text-slate-500 mt-1">{{ goal.days_remaining }} days remaining</div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <div class="text-xs font-semibold uppercase text-slate-400">Required Pace</div>
+            <div class="text-2xl font-extrabold text-indigo-600 mt-1">
+                {% if goal.status == 'completed' %}$0.00{% else %}~{{ monthly_required | currency }}/mo{% endif %}
+            </div>
+            <div class="text-xs text-slate-500 mt-1">To hit deadline on time</div>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold text-slate-700">Cumulative Milestone Progress</span>
+            <span class="text-xs font-extrabold text-blue-600">{{ goal.progress_percentage }}%</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 h-4 rounded-full transition-all duration-700" style="width: {{ goal.progress_percentage }}%"></div>
+        </div>
+    </div>
+
+    <!-- Chart & Add Contribution Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Progress Trajectory Chart -->
+        <div class="lg:col-span-8 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+            <h3 class="text-base font-bold text-slate-900 mb-4">Savings Growth Trajectory</h3>
+            <div class="h-64">
+                <canvas id="trajectoryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Add Contribution Card -->
+        <div class="lg:col-span-4 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 mb-2">+ Add Contribution</h3>
+                <p class="text-xs text-slate-500 mb-4">Allocate savings toward this goal.</p>
+
+                <form method="POST" action="{{ url_for('goals.add_contribution', goal_id=goal.id) }}" class="space-y-4">
+                    <div>
+                        <label for="cAmount" class="block text-xs font-bold uppercase text-slate-500 mb-1">Contribution Amount ($) *</label>
+                        <input type="number" step="0.01" min="0.01" id="cAmount" name="amount" required placeholder="0.00" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold">
+                    </div>
+                    <div>
+                        <label for="cDate" class="block text-xs font-bold uppercase text-slate-500 mb-1">Date *</label>
+                        <input type="date" id="cDate" name="date" required value="{{ today }}" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label for="cNotes" class="block text-xs font-bold uppercase text-slate-500 mb-1">Notes</label>
+                        <input type="text" id="cNotes" name="notes" placeholder="e.g. Monthly transfer, bonus deposit" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <button type="submit" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-sm font-bold text-white shadow-sm transition">
+                        Deposit to Goal
+                    </button>
+                </form>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 mt-4 text-center">
+                <form method="POST" action="{{ url_for('goals.delete_goal', goal_id=goal.id) }}" onsubmit="return confirm('Delete this financial goal?');">
+                    <button type="submit" class="text-xs font-semibold text-rose-600 hover:text-rose-800">
+                        Delete Goal
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contribution History Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
+            <h3 class="text-base font-bold text-slate-900">Contribution History</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-semibold tracking-wider">
+                        <th class="py-3 px-6">Date</th>
+                        <th class="py-3 px-6">Notes / Description</th>
+                        <th class="py-3 px-6 text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for c in contributions %}
+                    <tr class="hover:bg-slate-50/50">
+                        <td class="py-3 px-6 font-medium text-slate-600">{{ c.date }}</td>
+                        <td class="py-3 px-6 text-slate-800">{{ c.notes or 'Contribution' }}</td>
+                        <td class="py-3 px-6 text-right font-extrabold text-emerald-600">+{{ c.amount | currency }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="py-8 text-center text-slate-400">No contributions logged yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const trajectoryData = {{ trajectory | tojson }};
+    const ctx = document.getElementById('trajectoryChart');
+    if (ctx && trajectoryData && trajectoryData.labels) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trajectoryData.labels,
+                datasets: [
+                    {
+                        label: 'Saved Amount ($)',
+                        data: trajectoryData.data,
+                        borderColor: '#2563EB',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'Target ($)',
+                        data: trajectoryData.labels.map(() => trajectoryData.target_amount),
+                        borderColor: '#10B981',
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: v => '$' + v }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
+

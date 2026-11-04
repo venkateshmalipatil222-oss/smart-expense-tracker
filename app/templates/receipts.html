@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Receipt Scanner{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Receipt Scanner</h1>
+        <p class="text-slate-500 text-sm mt-1">
+            Upload paper or digital receipts. Our OCR engine extracts merchant, date, and total amount for your review and confirmation before committing.
+        </p>
+    </div>
+
+    <!-- Upload Card -->
+    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm">
+        <form method="POST" action="{{ url_for('receipts.upload_receipt') }}" enctype="multipart/form-data" class="space-y-4">
+            <div class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-8 text-center cursor-pointer transition bg-slate-50/50">
+                <input type="file" id="receiptFileInput" name="receipt_image" accept="image/*" required class="hidden" onchange="previewSelectedImage(this)">
+                <label for="receiptFileInput" class="cursor-pointer block">
+                    <div class="mx-auto w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <span class="text-sm font-bold text-slate-700 block">Click to select or drag receipt image here</span>
+                    <span class="text-xs text-slate-400 mt-1 block">Supports PNG, JPG, JPEG, WEBP, BMP up to 16MB</span>
+                </label>
+                <div id="fileSelectedName" class="mt-3 text-xs font-semibold text-blue-600 hidden"></div>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-sm font-bold text-white shadow-sm transition">
+                    Scan & Extract Details &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Scanned Receipts History Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
+            <h3 class="text-base font-bold text-slate-900">Scanned Receipts History</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-semibold tracking-wider">
+                        <th class="py-3 px-6">Scanned On</th>
+                        <th class="py-3 px-6">File</th>
+                        <th class="py-3 px-6">Extracted Merchant</th>
+                        <th class="py-3 px-6">Extracted Date</th>
+                        <th class="py-3 px-6 text-right">Extracted Amount</th>
+                        <th class="py-3 px-6 text-center">Status</th>
+                        <th class="py-3 px-6 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for scan in scans %}
+                    <tr class="hover:bg-slate-50/50">
+                        <td class="py-3.5 px-6 font-medium text-slate-600">{{ scan.created_at.strftime('%Y-%m-%d %H:%M') if scan.created_at else '' }}</td>
+                        <td class="py-3.5 px-6 text-slate-700 font-semibold truncate max-w-xs">{{ scan.original_filename }}</td>
+                        <td class="py-3.5 px-6 font-bold text-slate-900">{{ scan.extracted_merchant or 'Unknown' }}</td>
+                        <td class="py-3.5 px-6 text-slate-600">{{ scan.extracted_date or '-' }}</td>
+                        <td class="py-3.5 px-6 text-right font-extrabold text-slate-900">{{ scan.extracted_amount | currency }}</td>
+                        <td class="py-3.5 px-6 text-center">
+                            {% if scan.status == 'confirmed' %}
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">Confirmed</span>
+                            {% elif scan.status == 'discarded' %}
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">Discarded</span>
+                            {% else %}
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">Pending Review</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-6 text-center">
+                            {% if scan.status == 'pending_review' %}
+                                <a href="{{ url_for('receipts.confirm_receipt', scan_id=scan.id) }}" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition">
+                                    Review & Confirm &rarr;
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('receipts.confirm_receipt', scan_id=scan.id) }}" class="text-xs font-semibold text-slate-500 hover:text-slate-800">
+                                    View
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-400">No receipts scanned yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function previewSelectedImage(input) {
+        if (input.files && input.files[0]) {
+            const fileNameDiv = document.getElementById('fileSelectedName');
+            fileNameDiv.innerText = "Selected: " + input.files[0].name;
+            fileNameDiv.classList.remove('hidden');
+        }
+    }
+</script>
+{% endblock %}
+

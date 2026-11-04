@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Page Header & Quick Action Row -->
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800">
+        <div>
+            <div class="flex items-center space-x-2">
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Financial Overview</h1>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                    {{ overview.period }}
+                </span>
+            </div>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Real-time spending telemetry, categorical velocity, and AI-driven recommendations.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5">
+            <a href="{{ url_for('receipts.index') }}" class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition">
+                <svg class="w-4 h-4 mr-1.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                Scan Receipt
+            </a>
+            <a href="{{ url_for('import_stmt.index') }}" class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition">
+                <svg class="w-4 h-4 mr-1.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Import Statement
+            </a>
+            <a href="{{ url_for('core.add_transaction') }}" class="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition">
+                + New Transaction
+            </a>
+        </div>
+    </div>
+
+    <!-- Top KPI Metrics Strip (Vertical Proportions with Dark Mode) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Spent -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Outflow</span>
+                <span class="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </span>
+            </div>
+            <div class="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{{ overview.total_expense | currency }}</div>
+            <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                {{ overview.transaction_count }} transactions this month
+            </div>
+        </div>
+
+        <!-- Total Income -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Inflow</span>
+                <span class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                </span>
+            </div>
+            <div class="mt-2 text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">{{ overview.total_income | currency }}</div>
+            <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Earnings and credits
+            </div>
+        </div>
+
+        <!-- Net Savings -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Net Savings Margin</span>
+                <span class="p-1.5 rounded-lg {% if overview.net_savings >= 0 %}bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400{% else %}bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400{% endif %}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </span>
+            </div>
+            <div class="mt-2 text-2xl sm:text-3xl font-extrabold {% if overview.net_savings >= 0 %}text-slate-900 dark:text-white{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                {{ overview.net_savings | currency }}
+            </div>
+            <div class="mt-2 text-xs font-semibold {% if overview.savings_rate >= 20 %}text-emerald-600 dark:text-emerald-400{% elif overview.savings_rate >= 10 %}text-amber-600 dark:text-amber-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                {{ overview.savings_rate }}% net savings rate
+            </div>
+        </div>
+
+        <!-- Top Outflow Category -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Dominant Category</span>
+                <span class="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                </span>
+            </div>
+            <div class="mt-2 text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white truncate">
+                {{ overview.highest_category.category_name if overview.highest_category else "None yet" }}
+            </div>
+            <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                {% if overview.highest_category %}
+                    {{ overview.highest_category.total | currency }} ({{ overview.highest_category.percentage }}% of spend)
+                {% else %}
+                    No expenses logged
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Vertical 2-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- Left Column: Trajectory Chart, AI Insights Stream, Ledger Table (lg:col-span-8) -->
+        <div class="lg:col-span-8 space-y-8">
+
+            <!-- Vertical Section 1: Income vs Expense Trend Chart -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">Cash Flow History</h2>
+                        <p class="text-xs text-slate-400 dark:text-slate-500">6-Month historical income and expenditure comparison.</p>
+                    </div>
+                    <span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Monthly Delta</span>
+                </div>
+                <div class="h-72 w-full">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Vertical Section 2: AI Financial Recommendations Stream -->
+            {% if recommendations %}
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center space-x-2.5">
+                        <span class="p-2 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-xl shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </span>
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900 dark:text-white">AI Personalized Saving Suggestions</h2>
+                            <p class="text-xs text-slate-400 dark:text-slate-500">Rule-based calculations and statistical spending pattern detections.</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('insights.index') }}" class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                        Detailed Insights &rarr;
+                    </a>
+                </div>
+
+                <div class="space-y-3">
+                    {% for rec in recommendations %}
+                    <div class="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full {% if rec.type == 'RULE_BASED' %}bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800{% else %}bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800{% endif %}">
+                                    {{ rec.type }}
+                                </span>
+                                <h3 class="font-bold text-sm text-slate-900 dark:text-white">{{ rec.title }}</h3>
+                            </div>
+                            {% if rec.potential_savings > 0 %}
+                            <span class="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2.5 py-0.5 rounded-full">
+                                +{{ rec.potential_savings | currency }}/mo
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <p class="text-xs text-slate-700 dark:text-slate-300 mt-2 leading-relaxed">{{ rec.suggestion }}</p>
+
+                        <!-- Expandable Rationale Accordion -->
+                        <div class="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700 text-[11px] text-slate-500 dark:text-slate-400">
+                            <span class="font-bold text-slate-600 dark:text-slate-300">Why triggered:</span> {{ rec.rationale }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Vertical Section 3: Recent Transactions Ledger -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">Recent Transactions</h2>
+                        <p class="text-xs text-slate-400 dark:text-slate-500">Latest activity posted to your ledger.</p>
+                    </div>
+                    <a href="{{ url_for('core.transactions') }}" class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                        View Full Ledger &rarr;
+                    </a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50/75 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 uppercase text-[11px] font-semibold tracking-wider">
+                                <th class="py-3 px-6">Date</th>
+                                <th class="py-3 px-6">Description</th>
+                                <th class="py-3 px-6">Category</th>
+                                <th class="py-3 px-6">Status / Tags</th>
+                                <th class="py-3 px-6 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                            {% for tx in recent_transactions %}
+                            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
+                                <td class="py-3.5 px-6 font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ tx.date }}</td>
+                                <td class="py-3.5 px-6">
+                                    <div class="font-bold text-slate-900 dark:text-white">{{ tx.description }}</div>
+                                    {% if tx.merchant %}<div class="text-xs text-slate-400 dark:text-slate-500">{{ tx.merchant }}</div>{% endif %}
+                                </td>
+                                <td class="py-3.5 px-6 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold" style="background-color: {{ tx.category.color }}18; color: {{ tx.category.color }};">
+                                        {{ tx.category.name if tx.category else 'General' }}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-6 whitespace-nowrap">
+                                    {% if tx.is_anomaly %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800" title="{{ tx.anomaly_reason }}">
+                                            Unusual
+                                        </span>
+                                    {% elif tx.receipt_scan_id %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                                            Receipt OCR
+                                        </span>
+                                    {% elif tx.recurring_rule_id %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                                            Recurring
+                                        </span>
+                                    {% else %}
+                                        <span class="text-slate-400 dark:text-slate-500 text-xs">Standard</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3.5 px-6 text-right font-extrabold whitespace-nowrap {% if tx.transaction_type == 'income' %}text-emerald-600 dark:text-emerald-400{% else %}text-slate-900 dark:text-white{% endif %}">
+                                    {% if tx.transaction_type == 'income' %}+{% else %}-{% endif %}{{ tx.amount | currency }}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-slate-400 dark:text-slate-500">No transactions recorded yet. Click '+ New Transaction' to start.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Category Breakdown, Upcoming Bills, Outlier Feed (lg:col-span-4) -->
+        <div class="lg:col-span-4 space-y-6">
+
+            <!-- Vertical Category Distribution Card -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Current Month Outflow</h3>
+                <p class="text-xs text-slate-400 dark:text-slate-500 mb-4">Categorical spending breakdown.</p>
+
+                <!-- Donut Chart -->
+                <div class="h-48 flex items-center justify-center mb-5">
+                    {% if overview.category_breakdown %}
+                        <canvas id="categoryDoughnut"></canvas>
+                    {% else %}
+                        <div class="text-center text-slate-400 dark:text-slate-500 text-sm">No expenses recorded yet.</div>
+                    {% endif %}
+                </div>
+
+                <!-- Vertical Category Progress List -->
+                <div class="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    {% for cat in overview.category_breakdown[:5] %}
+                    <div>
+                        <div class="flex justify-between items-center text-xs font-semibold mb-1">
+                            <span class="text-slate-800 dark:text-slate-200">{{ cat.category_name }}</span>
+                            <span class="text-slate-900 dark:text-white font-bold">{{ cat.total | currency }} ({{ cat.percentage }}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                            <div class="h-1.5 rounded-full" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Upcoming Recurring Bills Vertical Feed -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="p-1.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </span>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Upcoming Payments</h3>
+                    </div>
+                    <a href="{{ url_for('recurring.index') }}" class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                        All &rarr;
+                    </a>
+                </div>
+
+                {% if upcoming_payments['items'] %}
+                    <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for item in upcoming_payments['items'][:4] %}
+                        <div class="py-3 flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-bold text-slate-900 dark:text-white">{{ item.description }}</div>
+                                <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                                    {{ item.due_date_str }}
+                                    {% if item.is_today %}
+                                        <span class="text-rose-600 dark:text-rose-400 font-bold ml-1">Due Today!</span>
+                                    {% elif item.is_overdue %}
+                                        <span class="text-amber-600 dark:text-amber-400 font-bold ml-1">Overdue</span>
+                                    {% else %}
+                                        <span class="text-slate-500 dark:text-slate-400 font-medium">({{ item.days_until }}d)</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-extrabold text-slate-900 dark:text-white">{{ item.amount | currency }}</div>
+                                <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                    {{ item.frequency }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-6 text-slate-400 dark:text-slate-500 text-xs">
+                        No recurring bills due in the next 14 days.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Unusual Spending Outliers Vertical Feed -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="p-1.5 bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-lg">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </span>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Unusual Spending</h3>
+                    </div>
+                    <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500">Statistical Alert</span>
+                </div>
+
+                {% if recent_anomalies %}
+                    <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for anom in recent_anomalies[:3] %}
+                        <div class="py-3">
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-bold text-slate-900 dark:text-white">{{ anom.description }}</span>
+                                <span class="text-xs font-extrabold text-rose-600 dark:text-rose-400">{{ anom.amount | currency }}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-1">
+                                {{ anom.anomaly_reason or "Amount differs from historical median for this category." }}
+                            </p>
+                            <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                {{ anom.category.name if anom.category else "Uncategorized" }} &bull; {{ anom.date }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-6 text-slate-400 dark:text-slate-500 text-xs">
+                        All clear! No unusual spending outliers detected in recent transactions.
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Fetch Chart Data from API
+    fetch("{{ url_for('insights.chart_data') }}")
+        .then(res => res.json())
+        .then(data => {
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+            const textColor = isDark ? '#94A3B8' : '#64748B';
+
+            // Trend Chart
+            const trendCtx = document.getElementById('trendChart');
+            if (trendCtx && data.history) {
+                const labels = data.history.map(h => h.month_label);
+                const expenses = data.history.map(h => h.expense);
+                const incomes = data.history.map(h => h.income);
+
+                new Chart(trendCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Income',
+                                data: incomes,
+                                backgroundColor: '#10B981',
+                                borderRadius: 6,
+                            },
+                            {
+                                label: 'Expense',
+                                data: expenses,
+                                backgroundColor: '#3B82F6',
+                                borderRadius: 6,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { color: textColor }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: gridColor },
+                                ticks: { color: textColor }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: {
+                                    color: textColor,
+                                    callback: v => '$' + v
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Category Doughnut Chart
+            const doughCtx = document.getElementById('categoryDoughnut');
+            if (doughCtx && data.category_breakdown && data.category_breakdown.length > 0) {
+                new Chart(doughCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.category_breakdown.map(c => c.category_name),
+                        datasets: [{
+                            data: data.category_breakdown.map(c => c.total),
+                            backgroundColor: data.category_breakdown.map(c => c.color || '#3B82F6'),
+                            borderWidth: 2,
+                            borderColor: isDark ? '#0f172a' : '#ffffff',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+        });
+</script>
+{% endblock %}

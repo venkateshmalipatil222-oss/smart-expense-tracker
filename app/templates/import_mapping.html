@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Map Statement Columns{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-4xl mx-auto">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Step 2: Map Statement Columns</h1>
+            <p class="text-slate-500 text-sm mt-0.5">
+                File: <span class="font-bold text-slate-800">{{ filename }}</span>. Match each field to the corresponding column header in your bank statement.
+            </p>
+        </div>
+        <a href="{{ url_for('import_stmt.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">
+            Cancel
+        </a>
+    </div>
+
+    <!-- Mapping Form Card -->
+    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm">
+        <form method="POST" action="{{ url_for('import_stmt.preview') }}" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Date Column -->
+                <div>
+                    <label for="dateColSelect" class="block text-xs font-bold uppercase text-slate-500 mb-1">
+                        Date Column *
+                    </label>
+                    <select id="dateColSelect" name="date_col" required class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+                        <option value="">Select column</option>
+                        {% for col in columns %}
+                            <option value="{{ col }}" {% if auto_mapping.date == col %}selected{% endif %}>{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="text-[11px] text-slate-400 mt-1 block">Expected format: YYYY-MM-DD or MM/DD/YYYY</span>
+                </div>
+
+                <!-- Description Column -->
+                <div>
+                    <label for="descColSelect" class="block text-xs font-bold uppercase text-slate-500 mb-1">
+                        Description / Merchant Column *
+                    </label>
+                    <select id="descColSelect" name="desc_col" required class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+                        <option value="">Select column</option>
+                        {% for col in columns %}
+                            <option value="{{ col }}" {% if auto_mapping.description == col %}selected{% endif %}>{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="text-[11px] text-slate-400 mt-1 block">Transaction narrative, merchant, or payee name</span>
+                </div>
+
+                <!-- Amount Column -->
+                <div>
+                    <label for="amountColSelect" class="block text-xs font-bold uppercase text-slate-500 mb-1">
+                        Amount Column *
+                    </label>
+                    <select id="amountColSelect" name="amount_col" required class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+                        <option value="">Select column</option>
+                        {% for col in columns %}
+                            <option value="{{ col }}" {% if auto_mapping.amount == col %}selected{% endif %}>{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="text-[11px] text-slate-400 mt-1 block">Numeric transaction total</span>
+                </div>
+
+                <!-- Category Column (Optional) -->
+                <div>
+                    <label for="catColSelect" class="block text-xs font-bold uppercase text-slate-500 mb-1">
+                        Category Column (Optional)
+                    </label>
+                    <select id="catColSelect" name="cat_col" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+                        <option value="">(None - Auto-categorize using AI/NLP)</option>
+                        {% for col in columns %}
+                            <option value="{{ col }}" {% if auto_mapping.category == col %}selected{% endif %}>{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="text-[11px] text-slate-400 mt-1 block">If omitted, AI will predict suitable categories</span>
+                </div>
+            </div>
+
+            <!-- Sample Data Preview -->
+            <div class="mt-8 pt-6 border-t border-slate-100">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Sample Rows from Your File</h3>
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                            <tr>
+                                {% for col in columns %}
+                                <th class="py-2 px-3">{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for row in sample_rows %}
+                            <tr class="hover:bg-slate-50/50">
+                                {% for col in columns %}
+                                <td class="py-2 px-3 text-slate-700 whitespace-nowrap">{{ row[col] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="pt-4 flex items-center justify-between">
+                <a href="{{ url_for('import_stmt.index') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+                    &larr; Re-upload File
+                </a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-sm font-bold text-white shadow-sm transition">
+                    Preview Transactions & Duplicate Check &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}AI Financial Insights{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">AI Financial Insights</h1>
+            <p class="text-slate-500 text-sm mt-1">
+                Data-driven historical pattern analysis, Month-over-Month (MoM) benchmarking, and explainable personalized saving recommendations.
+            </p>
+        </div>
+        {% if total_potential_savings > 0 %}
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center space-x-3">
+            <div class="p-1.5 bg-emerald-500 text-white rounded-lg font-bold text-xs">
+                SAVINGS
+            </div>
+            <div>
+                <div class="text-xs text-emerald-800 font-semibold">Identified Monthly Savings</div>
+                <div class="text-lg font-extrabold text-emerald-700">+{{ total_potential_savings | currency }}/mo</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Month-Over-Month Comparison Banner -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Month-over-Month (MoM) Spending Velocity</h2>
+                <p class="text-xs text-slate-500">Comparing {{ mom.current_month_label }} against {{ mom.previous_month_label }}</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="text-right">
+                    <div class="text-xs text-slate-400 font-semibold uppercase">Current Month</div>
+                    <div class="text-xl font-extrabold text-slate-900">{{ mom.current_total | currency }}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-slate-400 font-semibold uppercase">Previous Month</div>
+                    <div class="text-xl font-extrabold text-slate-500">{{ mom.previous_total | currency }}</div>
+                </div>
+                <div class="text-right pl-2 border-l border-slate-200">
+                    <div class="text-xs text-slate-400 font-semibold uppercase">Change</div>
+                    <div class="text-xl font-extrabold {% if mom.direction == 'increased' %}text-rose-600{% elif mom.direction == 'decreased' %}text-emerald-600{% else %}text-slate-700{% endif %}">
+                        {% if mom.direction == 'increased' %}+{% endif %}{{ mom.percent_change }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categorical MoM Table -->
+        <div class="overflow-x-auto mt-4">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-semibold tracking-wider">
+                        <th class="py-2.5 px-4">Category</th>
+                        <th class="py-2.5 px-4 text-right">{{ mom.previous_month_label }}</th>
+                        <th class="py-2.5 px-4 text-right">{{ mom.current_month_label }}</th>
+                        <th class="py-2.5 px-4 text-right">Variance ($)</th>
+                        <th class="py-2.5 px-4 text-right">Change (%)</th>
+                        <th class="py-2.5 px-4 text-center">Trend</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for cat in mom.categories %}
+                    <tr class="hover:bg-slate-50/50">
+                        <td class="py-3 px-4 font-bold text-slate-800">{{ cat.category }}</td>
+                        <td class="py-3 px-4 text-right text-slate-500">{{ cat.previous_amount | currency }}</td>
+                        <td class="py-3 px-4 text-right font-semibold text-slate-900">{{ cat.current_amount | currency }}</td>
+                        <td class="py-3 px-4 text-right font-medium {% if cat.difference > 0 %}text-rose-600{% elif cat.difference < 0 %}text-emerald-600{% else %}text-slate-500{% endif %}">
+                            {% if cat.difference > 0 %}+{% endif %}{{ cat.difference | currency }}
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold {% if cat.difference > 0 %}text-rose-600{% elif cat.difference < 0 %}text-emerald-600{% else %}text-slate-500{% endif %}">
+                            {% if cat.percent_change > 0 %}+{% endif %}{{ cat.percent_change }}%
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {% if cat.direction == 'increased' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700">
+                                    &uarr; Surge
+                                </span>
+                            {% elif cat.direction == 'decreased' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">
+                                    &darr; Reduced
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
+                                    &rarr; Flat
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Personalized Saving Suggestions with Provenance & Rationale -->
+    <div class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">Personalized Saving Suggestions</h2>
+            <div class="flex items-center space-x-3 text-xs">
+                <span class="inline-flex items-center space-x-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    <span class="text-slate-600 font-semibold">Rule-Based Calculation</span>
+                </span>
+                <span class="inline-flex items-center space-x-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                    <span class="text-slate-600 font-semibold">Statistical / ML Pattern</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {% for rec in recommendations %}
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold px-2.5 py-1 rounded-full {% if rec.type == 'RULE_BASED' %}bg-blue-100 text-blue-800 border border-blue-200{% else %}bg-purple-100 text-purple-800 border border-purple-200{% endif %}">
+                            {{ rec.type }}
+                        </span>
+                        {% if rec.potential_savings > 0 %}
+                        <span class="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            Save ~{{ rec.potential_savings | currency }}/mo
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900 mt-3">{{ rec.title }}</h3>
+                    <p class="text-sm text-slate-700 mt-2 leading-relaxed">{{ rec.suggestion }}</p>
+                </div>
+
+                <!-- Transparent Rationale Section -->
+                <div class="mt-4 pt-3 border-t border-slate-100 bg-slate-50/75 -mx-6 -mb-6 p-4 rounded-b-2xl">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Why this recommendation was generated:</div>
+                    <p class="text-xs text-slate-600 mt-1 leading-normal">{{ rec.rationale }}</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-span-2 bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-200/80">
+                Log more transactions to reveal tailored AI saving opportunities.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,49 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Testing & Test Artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# SQLite Databases & Local Data
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+!data/.gitkeep
+
+# User Uploaded Receipts / Statements
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+
+# Environment variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Editor & IDE Directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
