@@ -6,6 +6,7 @@ from app.models.recurring import RecurringRule
 from app.models.goal import FinancialGoal, GoalContribution
 from app.models.receipt import ReceiptScan
 from app.models.import_batch import ImportBatch
+from app.models.split import TransactionSplit, ExpenseShare
 
 __all__ = [
     "db",
@@ -17,4 +18,6 @@ __all__ = [
     "GoalContribution",
     "ReceiptScan",
     "ImportBatch",
+    "TransactionSplit",
+    "ExpenseShare",
 ]

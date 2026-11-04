@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}Group Sharing & Splits{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Group Sharing & Itemized Splits</h1>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                Manage group IOUs, itemize multi-category receipts, and track pending debt settlements in real time.
+            </p>
+        </div>
+        <button onclick="openSplitModal()" class="inline-flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>Split New / Existing Expense</span>
+        </button>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <!-- Total Unsettled Owed to You -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm transition-colors">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Owed to You</span>
+                <span class="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </span>
+            </div>
+            <div class="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-2">
+                ${{ "%.2f"|format(summary.total_unsettled_amount) }}
+            </div>
+            <p class="text-xs text-slate-400 mt-1">{{ summary.unsettled_count }} pending settlement(s) across {{ summary.pending_people_count }} person(s)</p>
+        </div>
+
+        <!-- Total Settled / Recovered -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm transition-colors">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Recovered</span>
+                <span class="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </span>
+            </div>
+            <div class="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">
+                ${{ "%.2f"|format(summary.total_settled_amount) }}
+            </div>
+            <p class="text-xs text-slate-400 mt-1">{{ summary.settled_count }} settled payment(s)</p>
+        </div>
+
+        <!-- Group Members with Pending IOUs -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm transition-colors">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Friends</span>
+                <span class="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                </span>
+            </div>
+            <div class="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 mt-2">
+                {{ summary.pending_people_count }}
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Distinct individuals with unpaid balance</p>
+        </div>
+    </div>
+
+    <!-- Outstanding Balances by Person -->
+    {% if summary.balances_by_person %}
+    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+        <h2 class="text-base font-bold text-slate-900 dark:text-white">Outstanding Balances by Person</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for person in summary.balances_by_person %}
+            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 text-white font-black flex items-center justify-center text-sm">
+                        {{ person.person_name[:2].upper() }}
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900 dark:text-white text-sm">{{ person.person_name }}</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ person.unsettled_count }} unpaid expense(s)</div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="font-black text-amber-600 dark:text-amber-400 text-base">${{ "%.2f"|format(person.total_owed) }}</div>
+                    <span class="inline-block px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">Pending</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Shared Expenses Ledger Table -->
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+        <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">All Shared Expenses &amp; IOUs</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Audit log of all individual shares and settlement status</p>
+            </div>
+            <span class="text-xs font-semibold text-slate-400">{{ summary.all_shares|length }} record(s)</span>
+        </div>
+
+        {% if summary.all_shares %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <th class="py-3 px-4">Date</th>
+                        <th class="py-3 px-4">Expense / Description</th>
+                        <th class="py-3 px-4">Shared With</th>
+                        <th class="py-3 px-4">Share Amount</th>
+                        <th class="py-3 px-4">Status</th>
+                        <th class="py-3 px-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                    {% for share in summary.all_shares %}
+                    <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4 font-mono text-slate-500 dark:text-slate-400">
+                            {{ share.transaction_date or share.created_at[:10] }}
+                        </td>
+                        <td class="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
+                            <div>{{ share.transaction_description or "Transaction #" ~ share.transaction_id }}</div>
+                            {% if share.notes %}
+                            <div class="text-[11px] text-slate-400 italic">{{ share.notes }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
+                            {{ share.person_name }}
+                        </td>
+                        <td class="py-3.5 px-4 font-black text-slate-900 dark:text-white">
+                            ${{ "%.2f"|format(share.amount) }}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if share.is_settled %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                Settled {{ share.settled_at[:10] if share.settled_at else '' }}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                                Unsettled
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            {% if not share.is_settled %}
+                            <form method="POST" action="{{ url_for('splits.settle', share_id=share.id) }}" class="inline">
+                                <button type="submit" class="px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 rounded-lg border border-emerald-200 dark:border-emerald-800 transition">
+                                    Mark Settled
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="POST" action="{{ url_for('splits.unsettle', share_id=share.id) }}" class="inline">
+                                <button type="submit" class="px-2.5 py-1 text-[11px] font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 rounded-lg transition">
+                                    Revert
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center text-slate-400">
+            <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <p class="font-bold text-sm text-slate-600 dark:text-slate-300">No shared expenses logged yet.</p>
+            <p class="text-xs text-slate-400 mt-1">Split a recent expense below to start tracking balances and settlements.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Expense Splitter Dialog / Tool -->
+    <div id="splitModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white">Split / Share an Expense</h3>
+                <button onclick="closeSplitModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Select Expense</label>
+                    <select id="modalTxSelect" onchange="onModalTxChange()" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs">
+                        <option value="">-- Choose an expense --</option>
+                        {% for tx in recent_expenses %}
+                        <option value="{{ tx.id }}" data-amount="{{ tx.amount }}" data-desc="{{ tx.description }}">
+                            {{ tx.date.strftime('%b %d') }} - {{ tx.description }} (${{ "%.2f"|format(tx.amount) }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="modalTxDetails" class="hidden p-3 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-blue-900 dark:text-blue-300" id="modalTxDesc">Expense</div>
+                        <div class="text-[11px] text-blue-700 dark:text-blue-400">Total Transaction Amount</div>
+                    </div>
+                    <div class="text-lg font-black text-blue-700 dark:text-blue-300" id="modalTxAmount">$0.00</div>
+                </div>
+
+                <!-- Tabs: Group Share vs Itemized Split -->
+                <div class="flex border-b border-slate-200 dark:border-slate-800">
+                    <button type="button" onclick="switchModalTab('shares')" id="tabSharesBtn" class="py-2 px-4 border-b-2 border-blue-600 font-bold text-blue-600 dark:text-blue-400">Group Sharing (IOU)</button>
+                    <button type="button" onclick="switchModalTab('splits')" id="tabSplitsBtn" class="py-2 px-4 border-b-2 border-transparent font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700">Itemized Multi-Category</button>
+                </div>
+
+                <!-- Tab 1: Group Sharing Content -->
+                <div id="sharesTabContent" class="space-y-3">
+                    <div id="sharesContainer" class="space-y-2">
+                        <div class="share-row flex items-center space-x-2">
+                            <input type="text" placeholder="Friend name (e.g. Alice)" class="share-name flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                            <input type="number" step="0.01" placeholder="Amount" class="share-amount w-24 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                            <input type="text" placeholder="Notes" class="share-notes flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                        </div>
+                    </div>
+                    <button type="button" onclick="addShareRow()" class="text-blue-600 dark:text-blue-400 font-bold text-xs hover:underline">+ Add Person</button>
+                    <div id="sharesError" class="text-rose-500 font-bold hidden"></div>
+                    <button type="button" onclick="submitShares()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">
+                        Save Group Shares
+                    </button>
+                </div>
+
+                <!-- Tab 2: Itemized Splits Content -->
+                <div id="splitsTabContent" class="hidden space-y-3">
+                    <div id="splitsContainer" class="space-y-2">
+                        <div class="split-row flex items-center space-x-2">
+                            <select class="split-cat flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="number" step="0.01" placeholder="Amount" class="split-amount w-24 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                            <input type="text" placeholder="Item description" class="split-desc flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                        </div>
+                    </div>
+                    <button type="button" onclick="addSplitRow()" class="text-blue-600 dark:text-blue-400 font-bold text-xs hover:underline">+ Add Sub-Category Split</button>
+                    <div id="splitsError" class="text-rose-500 font-bold hidden"></div>
+                    <button type="button" onclick="submitSplits()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">
+                        Save Multi-Category Split
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openSplitModal() {
+        document.getElementById('splitModal').classList.remove('hidden');
+    }
+
+    function closeSplitModal() {
+        document.getElementById('splitModal').classList.add('hidden');
+    }
+
+    function onModalTxChange() {
+        const sel = document.getElementById('modalTxSelect');
+        const opt = sel.options[sel.selectedIndex];
+        const details = document.getElementById('modalTxDetails');
+        if (opt && opt.value) {
+            details.classList.remove('hidden');
+            document.getElementById('modalTxDesc').textContent = opt.getAttribute('data-desc');
+            document.getElementById('modalTxAmount').textContent = '$' + parseFloat(opt.getAttribute('data-amount')).toFixed(2);
+        } else {
+            details.classList.add('hidden');
+        }
+    }
+
+    function switchModalTab(tab) {
+        const sharesBtn = document.getElementById('tabSharesBtn');
+        const splitsBtn = document.getElementById('tabSplitsBtn');
+        const sharesContent = document.getElementById('sharesTabContent');
+        const splitsContent = document.getElementById('splitsTabContent');
+
+        if (tab === 'shares') {
+            sharesBtn.className = "py-2 px-4 border-b-2 border-blue-600 font-bold text-blue-600 dark:text-blue-400";
+            splitsBtn.className = "py-2 px-4 border-b-2 border-transparent font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700";
+            sharesContent.classList.remove('hidden');
+            splitsContent.classList.add('hidden');
+        } else {
+            splitsBtn.className = "py-2 px-4 border-b-2 border-blue-600 font-bold text-blue-600 dark:text-blue-400";
+            sharesBtn.className = "py-2 px-4 border-b-2 border-transparent font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700";
+            splitsContent.classList.remove('hidden');
+            sharesContent.classList.add('hidden');
+        }
+    }
+
+    function addShareRow() {
+        const container = document.getElementById('sharesContainer');
+        const row = document.createElement('div');
+        row.className = "share-row flex items-center space-x-2";
+        row.innerHTML = `
+            <input type="text" placeholder="Friend name" class="share-name flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+            <input type="number" step="0.01" placeholder="Amount" class="share-amount w-24 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+            <input type="text" placeholder="Notes" class="share-notes flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 font-bold px-1">&times;</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function addSplitRow() {
+        const container = document.getElementById('splitsContainer');
+        const row = document.createElement('div');
+        row.className = "split-row flex items-center space-x-2";
+        row.innerHTML = `
+            <select class="split-cat flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" step="0.01" placeholder="Amount" class="split-amount w-24 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+            <input type="text" placeholder="Item description" class="split-desc flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 font-bold px-1">&times;</button>
+        `;
+        container.appendChild(row);
+    }
+
+    async function submitShares() {
+        const txId = document.getElementById('modalTxSelect').value;
+        const errDiv = document.getElementById('sharesError');
+        errDiv.classList.add('hidden');
+        if (!txId) {
+            errDiv.textContent = "Please select an expense to share.";
+            errDiv.classList.remove('hidden');
+            return;
+        }
+
+        const rows = document.querySelectorAll('.share-row');
+        const shares = [];
+        rows.forEach(r => {
+            const name = r.querySelector('.share-name').value.trim();
+            const amount = parseFloat(r.querySelector('.share-amount').value || 0);
+            const notes = r.querySelector('.share-notes').value.trim();
+            if (name && amount > 0) {
+                shares.push({ person_name: name, amount: amount, notes: notes });
+            }
+        });
+
+        if (shares.length === 0) {
+            errDiv.textContent = "Please enter at least one friend with an amount > $0.";
+            errDiv.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/splits/api/transaction/${txId}/shares`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ shares: shares })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                errDiv.textContent = data.error || "Failed to save shares.";
+                errDiv.classList.remove('hidden');
+            } else {
+                window.location.reload();
+            }
+        } catch (e) {
+            errDiv.textContent = "Network error saving shares.";
+            errDiv.classList.remove('hidden');
+        }
+    }
+
+    async function submitSplits() {
+        const txId = document.getElementById('modalTxSelect').value;
+        const errDiv = document.getElementById('splitsError');
+        errDiv.classList.add('hidden');
+        if (!txId) {
+            errDiv.textContent = "Please select an expense to split.";
+            errDiv.classList.remove('hidden');
+            return;
+        }
+
+        const rows = document.querySelectorAll('.split-row');
+        const splits = [];
+        rows.forEach(r => {
+            const catId = parseInt(r.querySelector('.split-cat').value);
+            const amount = parseFloat(r.querySelector('.split-amount').value || 0);
+            const desc = r.querySelector('.split-desc').value.trim();
+            if (catId && amount > 0) {
+                splits.push({ category_id: catId, amount: amount, description: desc });
+            }
+        });
+
+        if (splits.length === 0) {
+            errDiv.textContent = "Please add at least one split item with amount > $0.";
+            errDiv.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/splits/api/transaction/${txId}/splits`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ splits: splits })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                errDiv.textContent = data.error || "Failed to save splits.";
+                errDiv.classList.remove('hidden');
+            } else {
+                window.location.reload();
+            }
+        } catch (e) {
+            errDiv.textContent = "Network error saving splits.";
+            errDiv.classList.remove('hidden');
+        }
+    }
+</script>
+{% endblock %}

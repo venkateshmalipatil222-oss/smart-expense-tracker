@@ -52,7 +52,33 @@ An enterprise-grade, modular financial management system featuring AI-driven spe
 - **Pre-configured Demo Account**: Ready-to-use demo login (`demo_user` / `Password123!`) with instant one-click auto-fill.
 - **User Interface Integration**: Live user session card in the sidebar showing avatar initials, username, and email with one-click sign out.
 
-### 9. 🎨 Modern Vertical Workspace & Dark/Light Theme
+### 9. 💱 Multi-Currency & Real-Time FX Conversion Engine
+- **Cross-Currency Accounting**: Records foreign transactions in original currencies (EUR, GBP, INR, JPY, CAD, AUD) with dynamic exchange rates while automatically normalizing all ledger metrics to base USD.
+- **Live FX Conversion API**: Interactive client-side currency calculator (`/api/currency/convert`) with live preview badges in the transaction form and ledger tables.
+- **Locale-Aware Formatting**: Formats currency amounts with native symbols (`$`, `€`, `£`, `₹`, `¥`, `C$`, `A$`) and compliant thousand separators.
+
+### 10. 📈 Predictive Cash Flow & Balance Forecaster (Time-Series ML)
+- **Forward-Looking Simulation**: Projects the user's cash velocity 30 days into the future combining polynomial time-series velocity regression with scheduled upcoming recurring obligations.
+- **Statistical Uncertainty Bands**: Generates 95% confidence intervals ($\pm 1.96 \times \text{StdErr}$) to reflect realistic cash flow variance.
+- **Liquidity Risk Rating**: Automatically computes a categorized liquidity status (`LOW`, `MODERATE`, `HIGH`) and flags critical overdraft risk days before they happen.
+- **Multi-Dataset Visualization**: Interactive Chart.js projection chart in the AI Insights dashboard showing historical balance, projected balance trajectory, and shaded confidence bounds.
+
+### 11. 🤖 AI Financial Copilot (Natural Language Query Engine)
+- **Natural Language Understanding**: Conversational query parser supporting affordability assessments (*"Can I afford a $450 smartphone?"*), recurring subscription audits, category breakdowns, merchant spending summaries, and anomaly queries.
+- **Slide-Over Interactive Drawer**: Persistent slide-out chat interface accessible across all authenticated pages with prompt suggestion chips and instant answers.
+- **Explainable Ledger Grounding**: Zero hallucination; every recommendation is backed by real mathematical cash flow simulations, upcoming commitments, and explicit ledger citations.
+
+### 12. 📄 Executive PDF Financial Statement & Tax Summary Export
+- **Publication-Quality Vector PDFs**: Powered by ReportLab Platypus engine to generate downloadable, multi-page executive financial statements.
+- **Comprehensive Sections**: Executive KPI summary table (Inflow, Outflow, Net Savings, Savings Rate %), category spending distributions, potential tax-deductible expense audit (Healthcare, Education, Utilities, Work), and largest expenditure reviews.
+- **Flexible Reporting Intervals**: One-click exports for Month-to-Date (MTD), Last 90 Days, and Year-to-Date (YTD) / Tax Preparation.
+
+### 13. 👥 Group Expense Sharing & Itemized Receipt Splits
+- **Multi-Category Itemized Splits**: Enables splitting a single composite transaction (e.g., a $120 department store receipt) into multiple itemized categories (e.g. $70 Food & Dining + $50 Home Utilities) with strict mathematical sum reconciliation.
+- **Group IOU & Debt Management**: Tracks shared expenses and receivables owed by friends or roommates with status tracking (Unsettled vs. Settled).
+- **Interactive Settlement Workflow**: Dedicated Group Sharing dashboard (`/splits`) with aggregated debt per person, individual IOU settlement toggles, and real-time ledger updates.
+
+### 14. 🎨 Modern Vertical Workspace & Dark/Light Theme
 - **Vertical Navigation Flow**: Collapsible left vertical navigation bar with icon indicators, quick expense modal trigger, and clean two-column dashboard.
 - **Financial Analytics Visual Background**: Authentic dual-monitor trading dashboard background visual with frosted glassmorphic card overlays on authentication pages.
 - **Instant Dark / Light Mode**: One-click Sun ☀️ / Moon 🌙 toggle with local storage persistence and system preference autodetection.
@@ -66,10 +92,11 @@ An enterprise-grade, modular financial management system featuring AI-driven spe
 | **Backend Framework** | Flask | 3.1.3 |
 | **ORM & Database** | SQLAlchemy & SQLite | 2.1.8 |
 | **Machine Learning / NLP** | Scikit-Learn, NumPy, SciPy | 1.9.1 / 2.5.4 |
+| **Document Generation** | ReportLab | 5.1.0 |
 | **Computer Vision / OCR** | RapidOCR ONNX, OpenCV, Pillow | 1.2.3 / 5.0.0 |
 | **Data Ingestion** | Pandas, OpenPyXL | 3.1.0 / 3.1.5 |
 | **Frontend UI** | Tailwind CSS CDN, Chart.js CDN, Jinja2 | Modern ES6 |
-| **Testing** | Pytest | 9.2.0 |
+| **Testing** | Pytest (62/62 automated tests passing) | 9.2.0 |
 
 ---
 
@@ -117,7 +144,7 @@ Run the automated test suite covering all services, authentication, and API rout
 ```powershell
 python -m pytest -v
 ```
-**Results**: 40 passed, 100% test coverage across all features.
+**Results**: 62 passed, 100% test coverage across all features.
 
 ---
 

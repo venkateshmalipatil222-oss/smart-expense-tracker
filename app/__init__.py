@@ -33,6 +33,7 @@ def create_app(config_class=Config):
     from app.routes.recurring import recurring_bp
     from app.routes.goals import goals_bp
     from app.routes.import_stmt import import_bp
+    from app.routes.splits import splits_bp
 
     flask_app.register_blueprint(auth_bp, url_prefix="/auth")
     flask_app.register_blueprint(core_bp)
@@ -41,6 +42,7 @@ def create_app(config_class=Config):
     flask_app.register_blueprint(recurring_bp, url_prefix="/recurring")
     flask_app.register_blueprint(goals_bp, url_prefix="/goals")
     flask_app.register_blueprint(import_bp, url_prefix="/import")
+    flask_app.register_blueprint(splits_bp)
 
     # Global Access Control: Unauthenticated visitors see only the login page
     @flask_app.before_request
@@ -60,6 +62,7 @@ def create_app(config_class=Config):
     def inject_global_data():
         from app.models.category import Category
         from app.models.recurring import RecurringRule
+        from app.services.currency_service import CurrencyService
         from datetime import date
         try:
             categories = Category.query.order_by(Category.name).all()
@@ -73,6 +76,7 @@ def create_app(config_class=Config):
         return {
             "all_categories": categories,
             "pending_recurring_count": pending_recurring_count,
+            "supported_currencies": CurrencyService.get_supported_currencies(),
         }
 
     # Custom Jinja filters

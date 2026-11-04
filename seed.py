@@ -276,8 +276,32 @@ def seed_database():
         db.session.flush()
         db.session.add(GoalContribution(goal_id=g2.id, amount=1200.0, date=today - timedelta(days=20), notes="Initial vacation fund allocation"))
 
+        # 6. Seed Sample Multi-Category Split & Group Expense Share
+        from app.models.split import TransactionSplit, ExpenseShare
+        # Find a dining/shopping transaction
+        target_tx = Transaction.query.filter(Transaction.transaction_type == "expense", Transaction.amount >= 50.0).first()
+        if target_tx:
+            # Seed group shares (IOUs)
+            share1 = ExpenseShare(
+                transaction_id=target_tx.id,
+                person_name="Alice",
+                amount=round(target_tx.amount * 0.35, 2),
+                notes="Dinner portion",
+                is_settled=False
+            )
+            share2 = ExpenseShare(
+                transaction_id=target_tx.id,
+                person_name="Bob",
+                amount=round(target_tx.amount * 0.25, 2),
+                notes="Drinks & dessert",
+                is_settled=True,
+                settled_at=datetime.now()
+            )
+            db.session.add_all([share1, share2])
+            print(f"Seeded sample expense shares for Transaction #{target_tx.id}.")
+
         db.session.commit()
-        print("Seeded recurring rules and financial goals.")
+        print("Seeded recurring rules, financial goals, and sample expense shares.")
         print("Database initialization and seed complete!")
 
 if __name__ == "__main__":

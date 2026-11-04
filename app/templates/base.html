@@ -138,6 +138,11 @@
                 <svg class="w-5 h-5 {% if request.endpoint and 'import' in request.endpoint %}text-blue-600 dark:text-blue-400{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 <span>Bank Import</span>
             </a>
+
+            <a href="{{ url_for('splits.index') }}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition {% if request.endpoint and 'splits' in request.endpoint %}bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400{% else %}text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+                <svg class="w-5 h-5 {% if request.endpoint and 'splits' in request.endpoint %}text-blue-600 dark:text-blue-400{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <span>Group & Splits</span>
+            </a>
         </nav>
 
         <!-- User Session Card in Sidebar -->
@@ -259,6 +264,180 @@
             applyThemeIcons(isDark);
         });
     </script>
+
+    {% if current_user.is_authenticated %}
+    <!-- 2. AI Financial Copilot Floating Button & Slide-over Drawer -->
+    <div id="copilot-container">
+        <!-- Floating Trigger Button -->
+        <button type="button" onclick="toggleCopilot(true)" class="fixed bottom-6 right-6 z-40 flex items-center space-x-2 px-4 py-3 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-bold text-sm shadow-xl shadow-blue-500/25 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all">
+            <span class="text-base animate-pulse">✨</span>
+            <span>AI Copilot</span>
+        </button>
+
+        <!-- Slide-over Drawer Overlay -->
+        <div id="copilot-backdrop" onclick="toggleCopilot(false)" class="hidden fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 transition-opacity"></div>
+
+        <!-- Slide-over Drawer -->
+        <div id="copilot-drawer" class="hidden fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col transition-transform duration-300">
+            <!-- Drawer Header -->
+            <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/50">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                        ✨
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-sm text-slate-900 dark:text-white">Smart Financial Copilot</h3>
+                        <p class="text-[10px] text-slate-400">Natural Language Financial Assistant</p>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleCopilot(false)" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="copilot-messages" class="flex-1 p-4 overflow-y-auto space-y-3.5 text-xs">
+                <!-- Welcome Bot Message -->
+                <div class="p-3.5 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/60 text-slate-700 dark:text-slate-200 space-y-2">
+                    <div class="font-bold text-blue-900 dark:text-blue-300 flex items-center space-x-1.5">
+                        <span>👋</span>
+                        <span>Hello {{ current_user.username }}!</span>
+                    </div>
+                    <p class="text-[11px] leading-relaxed">
+                        I can analyze your spending patterns, audit recurring subscriptions, or evaluate whether you can afford an upcoming purchase. Try asking:
+                    </p>
+                    <div class="flex flex-wrap gap-1.5 pt-1">
+                        <button type="button" onclick="sendPrompt('Can I afford a $400 purchase?')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold text-[10px] hover:bg-blue-50 transition">
+                            Can I afford a $400 purchase?
+                        </button>
+                        <button type="button" onclick="sendPrompt('How much did I spend on Food & Dining?')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold text-[10px] hover:bg-blue-50 transition">
+                            Food & Dining spending
+                        </button>
+                        <button type="button" onclick="sendPrompt('What are my recurring subscriptions?')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold text-[10px] hover:bg-blue-50 transition">
+                            Active subscriptions
+                        </button>
+                        <button type="button" onclick="sendPrompt('Show my savings goals progress')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold text-[10px] hover:bg-blue-50 transition">
+                            Goals status
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Bar -->
+            <div class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+                <form onsubmit="handleCopilotSubmit(event)" class="flex items-center space-x-2">
+                    <input type="text" id="copilot-input" placeholder="Ask e.g. Can I afford a $350 trip?"
+                           class="flex-1 px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" class="px-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+                        Send
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleCopilot(open) {
+            const drawer = document.getElementById('copilot-drawer');
+            const backdrop = document.getElementById('copilot-backdrop');
+            if (open) {
+                backdrop.classList.remove('hidden');
+                drawer.classList.remove('hidden');
+                setTimeout(() => document.getElementById('copilot-input').focus(), 150);
+            } else {
+                backdrop.classList.add('hidden');
+                drawer.classList.add('hidden');
+            }
+        }
+
+        function sendPrompt(text) {
+            document.getElementById('copilot-input').value = text;
+            handleCopilotSubmit(new Event('submit'));
+        }
+
+        function handleCopilotSubmit(e) {
+            if (e) e.preventDefault();
+            const input = document.getElementById('copilot-input');
+            const query = input.value.trim();
+            if (!query) return;
+
+            const messages = document.getElementById('copilot-messages');
+            
+            // Append User Bubble
+            const userBubble = document.createElement('div');
+            userBubble.className = 'flex justify-end';
+            userBubble.innerHTML = `<div class="p-3 max-w-[85%] rounded-2xl bg-blue-600 text-white font-medium text-xs shadow-sm">${escapeHtml(query)}</div>`;
+            messages.appendChild(userBubble);
+            input.value = '';
+            messages.scrollTop = messages.scrollHeight;
+
+            // Append Typing Indicator
+            const typingBubble = document.createElement('div');
+            typingBubble.id = 'copilot-typing';
+            typingBubble.className = 'flex justify-start';
+            typingBubble.innerHTML = `<div class="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs animate-pulse">Analyzing financial records...</div>`;
+            messages.appendChild(typingBubble);
+            messages.scrollTop = messages.scrollHeight;
+
+            // Fetch Copilot API
+            fetch('/api/copilot/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: query })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const typing = document.getElementById('copilot-typing');
+                if (typing) typing.remove();
+
+                const botBubble = document.createElement('div');
+                botBubble.className = 'flex justify-start';
+
+                let badgeHtml = '';
+                if (data.status) {
+                    const colorMap = {
+                        'APPROVED': 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800',
+                        'CAUTION': 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800',
+                        'NOT_RECOMMENDED': 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                    };
+                    badgeHtml = `<div class="mb-2"><span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${colorMap[data.status] || ''}">${data.verdict || data.status}</span></div>`;
+                }
+
+                let suggestionsHtml = '';
+                if (data.suggestions && data.suggestions.length > 0) {
+                    suggestionsHtml = `<div class="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 mt-2">${data.suggestions.map(s => `<button type="button" onclick="sendPrompt('${s}')" class="px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 text-[10px] text-blue-600 dark:text-blue-300 border border-slate-200 dark:border-slate-600 font-semibold hover:bg-slate-50">${escapeHtml(s)}</button>`).join('')}</div>`;
+                }
+
+                botBubble.innerHTML = `
+                    <div class="p-3.5 max-w-[90%] rounded-2xl bg-slate-100 dark:bg-slate-800/90 text-slate-800 dark:text-slate-200 text-xs shadow-sm space-y-1.5 border border-slate-200/60 dark:border-slate-700/60">
+                        ${badgeHtml}
+                        <div class="leading-relaxed whitespace-pre-line">${formatMarkdown(data.reply)}</div>
+                        ${suggestionsHtml}
+                    </div>
+                `;
+                messages.appendChild(botBubble);
+                messages.scrollTop = messages.scrollHeight;
+            })
+            .catch(() => {
+                const typing = document.getElementById('copilot-typing');
+                if (typing) typing.remove();
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatMarkdown(text) {
+            if (!text) return '';
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        }
+    </script>
+    {% endif %}
 
     {% block scripts %}{% endblock %}
 </body>

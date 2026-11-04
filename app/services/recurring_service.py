@@ -141,12 +141,12 @@ class RecurringService:
         return created_transactions
 
     @classmethod
-    def get_upcoming_payments(cls, days_ahead: int = 30) -> dict:
+    def get_upcoming_payments(cls, days_ahead: int = 30, reference_date: date = None) -> dict:
         """
         Projects upcoming payments for all active recurring rules over the next N days.
         Returns ordered timeline and cash commitments summary.
         """
-        today = date.today()
+        today = reference_date or date.today()
         cutoff_date = today + timedelta(days=days_ahead)
 
         active_rules = RecurringRule.query.filter(RecurringRule.is_active == True).all()

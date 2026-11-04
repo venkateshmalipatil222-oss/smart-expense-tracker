@@ -21,6 +21,9 @@ erDiagram
     IMPORT_BATCHES ||--o{ TRANSACTIONS : "contains"
 
     FINANCIAL_GOALS ||--o{ GOAL_CONTRIBUTIONS : "accumulates"
+    TRANSACTIONS ||--o{ TRANSACTION_SPLITS : "itemizes"
+    TRANSACTIONS ||--o{ EXPENSE_SHARES : "shares"
+    CATEGORIES ||--o{ TRANSACTION_SPLITS : "categorizes"
 
     CATEGORIES {
         int id PK
@@ -34,6 +37,9 @@ erDiagram
     TRANSACTIONS {
         int id PK
         float amount
+        string currency
+        float exchange_rate
+        float original_amount
         string transaction_type
         date date
         string description
@@ -46,6 +52,26 @@ erDiagram
         int recurring_rule_id FK
         int import_batch_id FK
         text notes
+        datetime created_at
+    }
+
+    TRANSACTION_SPLITS {
+        int id PK
+        int transaction_id FK
+        int category_id FK
+        float amount
+        string description
+        datetime created_at
+    }
+
+    EXPENSE_SHARES {
+        int id PK
+        int transaction_id FK
+        string person_name
+        float amount
+        boolean is_settled
+        datetime settled_at
+        string notes
         datetime created_at
     }
 
@@ -147,7 +173,10 @@ The core financial ledger recording all incoming and outgoing financial events.
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `id` | `INTEGER` | PRIMARY KEY, AUTOINCREMENT | Unique transaction identifier |
-| `amount` | `FLOAT` | NOT NULL | Transaction numerical amount |
+| `amount` | `FLOAT` | NOT NULL | Base normalized transaction amount (USD) |
+| `currency` | `VARCHAR(3)` | DEFAULT 'USD', NOT NULL | Original ISO-4217 transaction currency |
+| `exchange_rate` | `FLOAT` | DEFAULT 1.0, NOT NULL | Conversion rate against base USD |
+| `original_amount`| `FLOAT` | NULLABLE | Pre-conversion numerical amount |
 | `transaction_type` | `VARCHAR(16)` | DEFAULT 'expense', NOT NULL | 'expense' or 'income' |
 | `date` | `DATE` | NOT NULL, INDEX | Transaction posting date |
 | `description` | `VARCHAR(255)` | NOT NULL, INDEX | Transaction narrative / title |
@@ -248,4 +277,34 @@ Audit logging for statement CSV and Excel ingestion batches.
 | `skipped_duplicates`| `INTEGER` | DEFAULT 0, NOT NULL | Number of duplicate rows detected and skipped |
 | `status` | `VARCHAR(24)` | DEFAULT 'completed', NOT NULL | 'completed', 'failed', 'partial' |
 | `created_at` | `DATETIME` | DEFAULT CURRENT_TIMESTAMP | Batch import timestamp |
+
+---
+
+### Table: `transaction_splits`
+Stores itemized sub-allocations of a single master transaction across multiple categories.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PRIMARY KEY, AUTOINCREMENT | Unique split identifier |
+| `transaction_id` | `INTEGER` | FOREIGN KEY (`transactions.id`, CASCADE), NOT NULL, INDEX | Master transaction |
+| `category_id` | `INTEGER` | FOREIGN KEY (`categories.id`), NOT NULL, INDEX | Sub-category allocation |
+| `amount` | `FLOAT` | NOT NULL | Itemized sub-amount |
+| `description` | `VARCHAR(255)` | NULLABLE | Item description / line note |
+| `created_at` | `DATETIME` | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
+
+---
+
+### Table: `expense_shares`
+Tracks group expense sharing, IOUs, and debt settlement status for a transaction.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PRIMARY KEY, AUTOINCREMENT | Unique share identifier |
+| `transaction_id` | `INTEGER` | FOREIGN KEY (`transactions.id`, CASCADE), NOT NULL, INDEX | Master transaction |
+| `person_name` | `VARCHAR(100)` | NOT NULL, INDEX | Debtor / friend name |
+| `amount` | `FLOAT` | NOT NULL | Share amount owed |
+| `is_settled` | `BOOLEAN` | DEFAULT FALSE, NOT NULL, INDEX | Settlement status |
+| `settled_at` | `DATETIME` | NULLABLE | Timestamp when debt was settled |
+| `notes` | `VARCHAR(255)` | NULLABLE | Share note or memo |
+| `created_at` | `DATETIME` | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
 

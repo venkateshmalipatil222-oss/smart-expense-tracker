@@ -47,15 +47,26 @@
                 <input type="text" id="merchantInput" name="merchant" value="{{ transaction.merchant if transaction and transaction.merchant else '' }}" placeholder="e.g. Starbucks Store #102, Target Inc." class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
 
-            <!-- Amount and Date in Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Amount, Currency and Date in Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label for="amountInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Amount ($) *</label>
-                    <input type="number" step="0.01" min="0.01" id="amountInput" name="amount" required value="{{ transaction.amount if transaction else '' }}" placeholder="0.00" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label for="currencySelect" class="block text-xs font-bold uppercase text-slate-500 mb-1">Currency</label>
+                    <select id="currencySelect" name="currency" onchange="updateCurrencyConversion()" class="w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        {% for curr in supported_currencies %}
+                            <option value="{{ curr.code }}" {% if (transaction and transaction.currency == curr.code) or (not transaction and curr.code == 'USD') %}selected{% endif %}>
+                                {{ curr.code }} ({{ curr.symbol }}) - {{ curr.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="amountInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Amount *</label>
+                    <input type="number" step="0.01" min="0.01" id="amountInput" name="amount" required value="{{ transaction.original_amount if transaction and transaction.original_amount else (transaction.amount if transaction else '') }}" placeholder="0.00" oninput="updateCurrencyConversion()" class="w-full px-4 py-2.5 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <span id="fxPreviewBadge" class="hidden text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1 block"></span>
                 </div>
                 <div>
                     <label for="dateInput" class="block text-xs font-bold uppercase text-slate-500 mb-1">Date *</label>
-                    <input type="date" id="dateInput" name="date" required value="{{ transaction.date if transaction else today }}" class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <input type="date" id="dateInput" name="date" required value="{{ transaction.date if transaction else today }}" class="w-full px-4 py-2.5 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
             </div>
 
@@ -168,9 +179,30 @@
         }
     }
 
+    // Multi-Currency conversion preview
+    function updateCurrencyConversion() {
+        const currSelect = document.getElementById('currencySelect');
+        const badge = document.getElementById('fxPreviewBadge');
+        if (!currSelect || !badge) return;
+        const curr = currSelect.value;
+        const amount = parseFloat(amountInput.value);
+        if (curr !== 'USD' && !isNaN(amount) && amount > 0) {
+            fetch(`/api/currency/convert?amount=${amount}&from=${curr}&to=USD`)
+                .then(res => res.json())
+                .then(data => {
+                    badge.textContent = `≈ ${data.formatted_converted} USD (Rate: 1 ${curr} = ${data.exchange_rate} USD)`;
+                    badge.classList.remove('hidden');
+                })
+                .catch(() => badge.classList.add('hidden'));
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
     amountInput.addEventListener('input', checkAnomaly);
     categorySelect.addEventListener('change', checkAnomaly);
     dateInput.addEventListener('change', checkAnomaly);
+    document.addEventListener('DOMContentLoaded', updateCurrencyConversion);
 </script>
 {% endblock %}
 

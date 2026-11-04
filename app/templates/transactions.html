@@ -9,7 +9,11 @@
             <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Transactions</h1>
             <p class="text-slate-500 dark:text-slate-400 text-sm mt-0.5">Filter, search, and manage your full financial ledger.</p>
         </div>
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-3 flex-wrap gap-2">
+            <a href="{{ url_for('insights.export_pdf', period='month') }}" title="Download Monthly Executive Statement" class="px-3.5 py-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-sm inline-flex items-center space-x-1.5">
+                <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>Export PDF</span>
+            </a>
             <a href="{{ url_for('import_stmt.index') }}" class="px-3.5 py-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-sm">
                 Import CSV / Excel
             </a>
@@ -107,7 +111,12 @@
                             {% endif %}
                         </td>
                         <td class="py-3.5 px-6 text-right font-extrabold whitespace-nowrap {% if tx.transaction_type == 'income' %}text-emerald-600 dark:text-emerald-400{% else %}text-slate-900 dark:text-white{% endif %}">
-                            {% if tx.transaction_type == 'income' %}+{% else %}-{% endif %}{{ tx.amount | currency }}
+                            <div>{% if tx.transaction_type == 'income' %}+{% else %}-{% endif %}{{ tx.amount | currency }}</div>
+                            {% if tx.currency and tx.currency != 'USD' and tx.original_amount %}
+                                <div class="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                                    {{ tx.original_amount }} {{ tx.currency }}
+                                </div>
+                            {% endif %}
                         </td>
                         <td class="py-3.5 px-6 text-center whitespace-nowrap">
                             <div class="inline-flex items-center space-x-2">

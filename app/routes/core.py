@@ -1,5 +1,6 @@
 from datetime import datetime, date
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import login_required
 from app.database import db
 from app.models.category import Category
 from app.models.transaction import Transaction
@@ -7,6 +8,8 @@ from app.services.insight_service import InsightService
 from app.services.categorizer_service import CategorizerService
 from app.services.anomaly_service import AnomalyDetectionService
 from app.services.recurring_service import RecurringService
+from app.services.currency_service import CurrencyService
+from app.services.copilot_service import CopilotService
 
 core_bp = Blueprint("core", __name__)
 
@@ -78,12 +81,22 @@ def add_transaction():
             flash("Description, amount, and date are required.", "danger")
             return redirect(url_for("core.add_transaction"))
 
+        currency = request.form.get("currency", "USD").upper().strip()
         try:
-            amount = abs(float(amount_str))
+            raw_amount = abs(float(amount_str))
             tx_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
             flash("Invalid amount or date format.", "danger")
             return redirect(url_for("core.add_transaction"))
+
+        # Convert foreign currency to base currency (USD)
+        if currency != "USD":
+            amount, rate = CurrencyService.convert_to_base(raw_amount, currency, "USD")
+            original_amount = raw_amount
+        else:
+            amount = raw_amount
+            rate = 1.0
+            original_amount = None
 
         # Category resolution or auto-suggestion
         if not category_id:
@@ -100,6 +113,9 @@ def add_transaction():
 
         tx = Transaction(
             amount=amount,
+            currency=currency,
+            exchange_rate=rate,
+            original_amount=original_amount,
             transaction_type=tx_type,
             date=tx_date,
             description=description,
@@ -133,14 +149,24 @@ def edit_transaction(tx_id):
         tx.transaction_type = request.form.get("transaction_type", "expense")
         tx.notes = request.form.get("notes", "").strip() or None
         
+        currency = request.form.get("currency", tx.currency or "USD").upper().strip()
         amount_str = request.form.get("amount", "0").replace(",", "").strip()
         date_str = request.form.get("date", "").strip()
         try:
-            tx.amount = abs(float(amount_str))
+            raw_amount = abs(float(amount_str))
             tx.date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
             flash("Invalid amount or date format.", "danger")
             return redirect(url_for("core.edit_transaction", tx_id=tx.id))
+
+        if currency != "USD":
+            tx.amount, tx.exchange_rate = CurrencyService.convert_to_base(raw_amount, currency, "USD")
+            tx.original_amount = raw_amount
+        else:
+            tx.amount = raw_amount
+            tx.exchange_rate = 1.0
+            tx.original_amount = None
+        tx.currency = currency
 
         # Re-evaluate anomaly
         is_anom, score, reason, _ = AnomalyDetectionService.evaluate_transaction(
@@ -207,4 +233,39 @@ def api_check_anomaly():
         "reason": reason,
         "method": method
     })
+
+@core_bp.route("/api/currency/convert")
+def api_currency_convert():
+    """
+    Live Currency & FX conversion API.
+    """
+    amount = request.args.get("amount", 0.0, type=float)
+    from_curr = request.args.get("from", "USD").upper().strip()
+    to_curr = request.args.get("to", "USD").upper().strip()
+    converted_amount, rate = CurrencyService.convert(amount, from_curr, to_curr)
+    from_info = CurrencyService.get_currency_info(from_curr)
+    to_info = CurrencyService.get_currency_info(to_curr)
+    return jsonify({
+        "original_amount": amount,
+        "from_currency": from_info,
+        "to_currency": to_info,
+        "converted_amount": converted_amount,
+        "exchange_rate": rate,
+        "formatted_original": CurrencyService.format_amount(amount, from_curr),
+        "formatted_converted": CurrencyService.format_amount(converted_amount, to_curr)
+    })
+
+@core_bp.route("/api/copilot/chat", methods=["POST"])
+@login_required
+def api_copilot_chat():
+    """
+    AI Financial Copilot Conversational Query API.
+    """
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or data.get("query") or "").strip()
+    result = CopilotService.process_query(message)
+    result["success"] = True
+    return jsonify(result)
+
+
 

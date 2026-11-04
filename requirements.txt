@@ -11,3 +11,4 @@ opencv-python>=4.8.0
 rapidocr-onnxruntime>=1.2.0
 pytest>=8.0.0
 python-dateutil>=2.8.2
+reportlab>=4.0.0
