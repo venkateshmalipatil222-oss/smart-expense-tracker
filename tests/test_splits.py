@@ -177,3 +177,4 @@ def test_splits_routes_and_api(client, app):
     res_settle = client.post(f"/splits/settle/{share_id}", follow_redirects=True)
     assert res_settle.status_code == 200
     assert b"successfully settled" in res_settle.data
+

@@ -72,3 +72,4 @@ def test_api_forecast_endpoint(client):
     assert "current_balance" in data
     assert "forecast_points" in data
     assert len(data["forecast_points"]) == 30
+

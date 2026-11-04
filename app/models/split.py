@@ -71,3 +71,4 @@ class ExpenseShare(db.Model):
 
     def __repr__(self):
         return f"<ExpenseShare person='{self.person_name}' amount={self.amount} settled={self.is_settled}>"
+

@@ -70,3 +70,4 @@ def test_export_pdf_route_custom(client):
     assert res.status_code == 200
     assert res.content_type == "application/pdf"
     assert res.data.startswith(b"%PDF")
+

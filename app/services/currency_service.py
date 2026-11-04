@@ -71,3 +71,4 @@ class CurrencyService:
         if info["code"] == "JPY":
             return f"{symbol}{int(round(amt)):,}"
         return f"{symbol}{amt:,.2f}"
+

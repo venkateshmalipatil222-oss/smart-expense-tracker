@@ -333,3 +333,4 @@ class CopilotService:
                 "Show monthly summary"
             ]
         }
+

@@ -71,3 +71,4 @@ def api_save_shares(tx_id):
 def api_summary():
     summary = SplitService.get_sharing_summary()
     return jsonify(summary)
+

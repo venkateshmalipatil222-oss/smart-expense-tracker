@@ -318,3 +318,4 @@ class ReportService:
         pdf_bytes = buffer.getvalue()
         buffer.close()
         return pdf_bytes
+

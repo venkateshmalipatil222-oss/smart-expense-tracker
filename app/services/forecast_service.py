@@ -133,3 +133,4 @@ class ForecastService:
             "risk_explanation": risk_explanation,
             "forecast_points": forward_points
         }
+

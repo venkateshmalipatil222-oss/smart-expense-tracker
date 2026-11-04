@@ -63,3 +63,4 @@ def test_api_currency_convert_endpoint(client):
     assert data["converted_amount"] == 108.50
     assert data["exchange_rate"] == 1.085
     assert "$108.50" in data["formatted_converted"]
+

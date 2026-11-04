@@ -20,6 +20,25 @@ def create_app(config_class=Config):
     db.init_app(flask_app)
     login_manager.init_app(flask_app)
 
+    # Self-healing database schema verification
+    with flask_app.app_context():
+        try:
+            db.create_all()
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                res = conn.execute(text("PRAGMA table_info(transactions)")).fetchall()
+                cols = [r[1] for r in res] if res else []
+                if cols:
+                    if "currency" not in cols:
+                        conn.execute(text("ALTER TABLE transactions ADD COLUMN currency VARCHAR(3) DEFAULT 'USD' NOT NULL"))
+                    if "exchange_rate" not in cols:
+                        conn.execute(text("ALTER TABLE transactions ADD COLUMN exchange_rate FLOAT DEFAULT 1.0 NOT NULL"))
+                    if "original_amount" not in cols:
+                        conn.execute(text("ALTER TABLE transactions ADD COLUMN original_amount FLOAT"))
+                    conn.commit()
+        except Exception:
+            pass
+
     @login_manager.user_loader
     def load_user(user_id):
         from app.models.user import User
